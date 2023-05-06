@@ -1,7 +1,7 @@
-from .client_terminal_request import ClientTerminalRequest
+#from dto import ClientTerminalRequest
 from typing import Optional
 
-class ClientRegistrationDetail(ClientTerminalRequest):
+class ClientRegistrationDetail():
     def __init__(
         self, 
         name: Optional[str] = None, 

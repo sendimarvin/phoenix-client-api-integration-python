@@ -1,4 +1,4 @@
-class CompleteClientRegistration(ClientTerminalRequest):
+class CompleteClientRegistration():
     def __init__(self):
         self.otp = None
         self.password = None

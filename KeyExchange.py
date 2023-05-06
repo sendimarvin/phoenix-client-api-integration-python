@@ -2,8 +2,8 @@ import json
 import uuid
 import requests
 from Crypto.PublicKey import ECC
-from interswitchug.phoenix.simulator.dto import KeyExchangeRequest, KeyExchangeResponse
-from interswitchug.phoenix.simulator.utils import AuthUtils, Constants, CryptoUtils, EllipticCurveUtils, HttpUtil, UtilMethods
+from dto import KeyExchangeRequest, KeyExchangeResponse
+from utils import AuthUtils, Constants, CryptoUtils, EllipticCurveUtils, HttpUtil, UtilMethods
 
 endpoint_url = Constants.ROOT_LINK + "client/doKeyExchange"
 
