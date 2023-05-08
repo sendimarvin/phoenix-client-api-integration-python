@@ -7,6 +7,10 @@ from Crypto.PublicKey import RSA
 from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import pad, unpad
 from binascii import hexlify
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives import hashes
+
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
 
 class CryptoUtils:
     
@@ -57,3 +61,14 @@ class CryptoUtils:
         except Exception as e:
             print('Exception trace:', e)
             raise SystemApiException(PhoenixResponseCodes.INTERNAL_ERROR.CODE, "Failure to encryptWithPrivate ")
+        
+    @staticmethod
+    def sign_with_private_key(data, private_key):
+
+        # private_key_bytes = private_key.encode('utf-8')
+        # key = load_pem_private_key(private_key_bytes, password=None)
+
+        signer = private_key.signer(padding.PKCS1v15(), hashes.SHA256())
+        signer.update(data.encode('utf-8'))
+        signature = signer.finalize()
+        return base64.b64encode(signature).decode('utf-8')

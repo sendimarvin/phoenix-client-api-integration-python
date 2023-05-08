@@ -5,9 +5,12 @@ import os
 import random
 import re
 from typing import TypeVar
+import json
 
 import hexbytes
 from requests.exceptions import RequestException
+
+from dto import SystemResponse
 
 
 T = TypeVar('T')
@@ -30,10 +33,11 @@ def hash512(plain_text: str) -> str:
         raise SystemApiException("InternalError", "Failure to hash512 object")
 
 
-def unmarshall_system_response_object(response: str, the_class: type) -> SystemResponse[T]:
+def unmarshall_system_response_object(response) -> SystemResponse:
     try:
         obj = json.loads(response)
-        return SystemResponse(**obj)
+        #return SystemResponse(**obj)
+        return obj
     except Exception as e:
         logger.error("Exception trace: {}".format(str(e)))
         raise SystemApiException("InternalError", "Failure to unmarshall json string from systemresponse object")

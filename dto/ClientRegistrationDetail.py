@@ -1,7 +1,8 @@
-#from dto import ClientTerminalRequest
+from dto.ClientTerminalRequest import ClientTerminalRequest
 from typing import Optional
+import json
 
-class ClientRegistrationDetail():
+class ClientRegistrationDetail(ClientTerminalRequest, json.JSONEncoder):
     def __init__(
         self, 
         name: Optional[str] = None, 
@@ -22,6 +23,9 @@ class ClientRegistrationDetail():
         self.owner_phone_number = owner_phone_number
         self.public_key = public_key
         self.client_session_public_key = client_session_public_key
+
+    def __str__(self):
+        return f"name: {self.name}, phone_number: {self.phone_number}, nin: {self.nin}, gender: {self.gender}, email_address: {self.email_address}, owner_phone_number: {self.owner_phone_number}, public_key: {self.public_key}, client_session_public_key: {self.client_session_public_key}"
         
     @property
     def client_session_public_key(self) -> Optional[str]:
@@ -86,3 +90,6 @@ class ClientRegistrationDetail():
     @public_key.setter
     def public_key(self, value: Optional[str]):
         self._public_key = value
+
+
+# class ClientRegistrationDetail():

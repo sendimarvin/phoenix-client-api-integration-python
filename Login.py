@@ -1,12 +1,11 @@
 import json
 import uuid
 import logging
-from java.security import KeyPair
-from java.util import Map, Scanner
-from com.dto import (JSONDataTransform,
+from Security import KeyPair
+from dto import (JSONDataTransform,
     LoginOtpValidationRequest, LoginRequest, LoginResponse, PhoenixResponseCodes,
     SystemResponse)
-from com.utils import AuthUtils, Constants, CryptoUtils, EllipticCurveUtils, HttpUtil, UtilMethods
+from utils import AuthUtils, Constants, CryptoUtils, EllipticCurveUtils, HttpUtil, UtilMethods
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

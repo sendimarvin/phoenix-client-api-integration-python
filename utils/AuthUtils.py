@@ -9,6 +9,8 @@ from typing import Dict
 from datetime import datetime
 from pytz import timezone
 
+from utils.CryptoUtils import CryptoUtils
+
 
 class AuthUtils:
     @staticmethod
@@ -24,8 +26,8 @@ class AuthUtils:
         uuid_str = str(uuid.uuid4()).replace('-', '')
         nonce = uuid_str
 
-        client_id = 'YOUR_CLIENT_ID_HERE'
-        client_secret = 'YOUR_CLIENT_SECRET_HERE'
+        client_id = 'IKIAE49C7B4ACC0077BD80058314D71A66A7C6FCC286'
+        client_secret = 'UtqTs3rO9XUzwKkeoCYKP0CCT9CDGmPePnonViczpWA='
 
         authorization = f'InterswitchAuth {base64.b64encode(client_id.encode()).decode()}'
 
@@ -37,12 +39,12 @@ class AuthUtils:
 
         print(f'signature cipher {signature_cipher}')
 
-        sha512_digest = hashlib.sha512(signature_cipher.encode()).digest()
+        #sha512_digest = hashlib.sha512(signature_cipher.encode()).digest()
 
         if private_key:
-            signature = CryptoUtils.sign_with_private_key(sha512_digest, private_key)
+            signature = CryptoUtils.sign_with_private_key(signature_cipher, private_key)
         else:
-            signature = CryptoUtils.sign_with_private_key(sha512_digest)
+            signature = CryptoUtils.sign_with_private_key(signature_cipher)
 
         interswitch_auth['Authorization'] = authorization
         interswitch_auth['Timestamp'] = str(int(timestamp))
