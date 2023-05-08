@@ -8,7 +8,7 @@ class ClientRegistrationDetailEncoder(json.JSONEncoder):
                 'name': obj.name,
                 'nin': obj.nin,
                 'phoneNumber': obj.phone_number,
-                # 'clientSessionPublicKey': obj.client_session_public_key,
+                'clientSessionPublicKey': obj.client_session_public_key,
                 'emailAddress': obj.email_address,
                 'publicKey': obj.public_key,
                 'ownerPhoneNumber': obj.owner_phone_number,

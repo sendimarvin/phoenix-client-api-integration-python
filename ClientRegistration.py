@@ -122,14 +122,14 @@ def client_registration_request(publicKey, clientSessionPublicKey, privateKey):
     setup.requestReference = str(uuid.uuid4())
     setup.terminalId = (Constants.TERMINAL_ID)
     setup.gprsCoordinate = ""
-    setup.client_session_public_key = (clientSessionPublicKey)
+    setup.client_session_public_key = str(clientSessionPublicKey)
 
     headers = AuthUtils.generate_interswitch_auth(Constants.POST_REQUEST, REGISTRATION_ENDPOINT_URL, "", "", "", privateKey)
 
 
     print("\n\n\n\n"+str(setup)+"\n\n\n\n")
 
-    mjson = json.dumps(setup, cls=ClientRegistrationDetailEncoder)
+    mjson = json.dumps(setup, cls=ClientRegistrationDetailEncoder) ##client_session_public_key
 
     return HttpUtil.post_http_request(REGISTRATION_ENDPOINT_URL, headers, mjson)
 
