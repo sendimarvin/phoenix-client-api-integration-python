@@ -7,7 +7,7 @@ ACCOUNT_PWD = "112233"
 
 # header strings
 TIMESTAMP = "Timestamp"
-TERMINAL_ID = "TerminalId"
+TERMINAL_ID = "3ISO0140"
 NONCE = "Nonce"
 SIGNATURE = "Signature"
 AUTHORIZATION = "Authorization"
@@ -16,7 +16,7 @@ ISO_8859_1 = "ISO-8859-1"
 AUTH_TOKEN = "AuthToken"
 APP_VERSION = "v1"
 
-SANDBOX_ROUTE = "https://dev.interswitch.io/api/"
+SANDBOX_ROUTE = "https://dev.interswitch.io/api/v1/phoenix/"
 ROOT_LINK = SANDBOX_ROUTE
 
 CLIENT_ID = "IKIAE49C7B4ACC0077BD80058314D71A66A7C6FCC286"

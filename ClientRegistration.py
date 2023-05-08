@@ -13,11 +13,13 @@ from cryptography.hazmat.backends import default_backend
 
 from dto import (
     ClientRegistrationResponse, CompleteClientRegistration,
-    LoginResponse, PhoenixResponseCodes, SystemResponse
+    LoginResponse, SystemResponse
 )
 
 from dto.ClientRegistrationDetail import ClientRegistrationDetail
 from dto.ClientRegistrationDetailEncoder import ClientRegistrationDetailEncoder
+
+from dto.PhoenixResponseCodes import PhoenixResponseCodes
 
 from utils.AuthUtils import AuthUtils
 from utils import Constants
@@ -73,41 +75,41 @@ def main():
 
     response = client_registration_request(public_key, curve_public_key, key) #private_key
 
-    registration_response = UtilMethods.unmarshall_system_response_object(
-        response, ClientRegistrationResponse
-    )
-    if registration_response.response_code != PhoenixResponseCodes.APPROVED.CODE:
+    print(f"\n\n\nRemote Response: {response}\n\n\n")
+
+    registration_response = json.loads(response)
+
+    if registration_response['responseCode'] != PhoenixResponseCodes.APPROVED.value[2]:
         logger.info(
-            f"Client Registration failed: {registration_response.response_message}"
+            f"Client Registration failed: {registration_response['responseMessage']}"
         )
     else:
         decrypted_session_key = CryptoUtils.decrypt_with_private(
-            registration_response.response.server_session_public_key, private_key
+            registration_response['response']['server_session_public_key'], private_key
         )
         terminal_key = curve_utils.do_ecdh(curve_private_key, decrypted_session_key)
         logger.info("==============terminalKey==============")
         logger.info(f"terminalKey: {terminal_key}")
         auth_token = CryptoUtils.decrypt_with_private(
-            registration_response.response.auth_token, private_key
+            registration_response['response']['authToken'], private_key
         )
-        transaction_reference = registration_response.response.transaction_reference
+        transaction_reference = registration_response['response']['transactionReference']
         logger.info("Enter received OTP: ")
         otp = stdin.readline().strip()
         final_response = complete_registration(
             terminal_key, auth_token, transaction_reference, otp, private_key
         )
 
-        response = UtilMethods.unmarshall_system_response_object(
-            final_response, LoginResponse
-        )
-        if response.response_code == PhoenixResponseCodes.APPROVED.CODE:
+        response = json.loads(final_response)
+        
+        if response['responseCode'] == PhoenixResponseCodes.APPROVED.value[2]:
             client_secret = CryptoUtils.decrypt_with_private(
-                response.response.client_secret, private_key
+                response['response']['clientSecret'], private_key
             )
             if client_secret and len(client_secret) > 5:
                 logger.info(f"clientSecret: {client_secret}")
         else:
-            logger.info(f"finalResponse: {response.response_message}")
+            logger.info(f"finalResponse: {response['responseMessage']}")
 
 def client_registration_request(publicKey, clientSessionPublicKey, privateKey):
     setup = ClientRegistrationDetail()
@@ -117,7 +119,7 @@ def client_registration_request(publicKey, clientSessionPublicKey, privateKey):
     setup.owner_phone_number = "0702544870"
     setup.phone_number = "0702544870"
     setup.public_key = publicKey
-    setup.requestReference = uuid.uuid4()
+    setup.requestReference = str(uuid.uuid4())
     setup.terminalId = (Constants.TERMINAL_ID)
     setup.gprsCoordinate = ""
     setup.client_session_public_key = (clientSessionPublicKey)

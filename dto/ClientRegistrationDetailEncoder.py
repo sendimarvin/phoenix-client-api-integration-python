@@ -7,6 +7,13 @@ class ClientRegistrationDetailEncoder(json.JSONEncoder):
             return {
                 'name': obj.name,
                 'nin': obj.nin,
-                'phone_number': obj.phone_number
+                'phoneNumber': obj.phone_number,
+                # 'clientSessionPublicKey': obj.client_session_public_key,
+                'emailAddress': obj.email_address,
+                'publicKey': obj.public_key,
+                'ownerPhoneNumber': obj.owner_phone_number,
+                'requestReference': obj.requestReference,
+                'serialId': obj.serialId,
+                'terminalId': obj.terminalId,
             }
         return json.JSONEncoder.default(self, obj)
