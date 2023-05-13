@@ -21,13 +21,15 @@ class AuthUtils:
 
         ug_time_zone = timezone('Africa/Kampala')
         calendar = datetime.now(ug_time_zone)
-        timestamp = calendar.timestamp()
+        timestamp = int(calendar.timestamp())
 
         uuid_str = str(uuid.uuid4()).replace('-', '')
         nonce = uuid_str
 
         client_id = 'IKIAE49C7B4ACC0077BD80058314D71A66A7C6FCC286'
         client_secret = 'UtqTs3rO9XUzwKkeoCYKP0CCT9CDGmPePnonViczpWA='
+
+        
 
         authorization = f'InterswitchAuth {base64.b64encode(client_id.encode()).decode()}'
 
@@ -47,7 +49,7 @@ class AuthUtils:
             signature = CryptoUtils.sign_with_private_key(signature_cipher)
 
         interswitch_auth['Authorization'] = authorization
-        interswitch_auth['Timestamp'] = str(int(timestamp))
+        interswitch_auth['Timestamp'] = str(timestamp)
         interswitch_auth['Nonce'] = nonce
         interswitch_auth['Signature'] = signature
 

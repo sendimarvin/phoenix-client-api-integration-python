@@ -49,19 +49,19 @@ def main():
     )
     mpublic_key = key.public_key()
 
-    private_key = b64encode(key.private_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption()
-    )).decode('utf-8')
+    private_key = key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        ).decode("utf-8")
 
-    public_key = b64encode(mpublic_key.public_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo
-    )).decode('utf-8')
+    public_key = mpublic_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        ).decode("utf-8")
 
-    logger.info(f"private key {private_key}")
-    logger.info(f"public key {public_key}")
+    print(f"\n\nprivate key {private_key}\n\n")
+    print(f"\n\npublic key {public_key}\n\n")
 
 
     # Generate ECDH private key
@@ -122,7 +122,7 @@ def client_registration_request(publicKey, clientSessionPublicKey, privateKey):
     setup.requestReference = str(uuid.uuid4())
     setup.terminalId = (Constants.TERMINAL_ID)
     setup.gprsCoordinate = ""
-    setup.client_session_public_key = str(clientSessionPublicKey)
+    setup.client_session_public_key = clientSessionPublicKey.decode('utf-8')
 
     headers = AuthUtils.generate_interswitch_auth(Constants.POST_REQUEST, REGISTRATION_ENDPOINT_URL, "", "", "", privateKey)
 
