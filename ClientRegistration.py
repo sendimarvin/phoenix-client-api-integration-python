@@ -63,15 +63,7 @@ def main():
     print(f"\n\nprivate key {private_key}\n\n")
     print(f"\n\npublic key {public_key}\n\n")
 
-
-    # Generate ECDH private key
-    ecdh_private_key = ec.generate_private_key(ec.SECP256R1(), default_backend())
-    # Get ECDH public key
-    ecdh_public_key = ecdh_private_key.public_key()
-    # Convert private key to bytes and then base64
-    curve_private_key = base64.b64encode(ecdh_private_key.private_bytes(encoding=serialization.Encoding.DER, format=serialization.PrivateFormat.PKCS8, encryption_algorithm=serialization.NoEncryption()))
-    # Convert public key to bytes and then base64
-    curve_public_key = base64.b64encode(ecdh_public_key.public_bytes(encoding=serialization.Encoding.DER, format=serialization.PublicFormat.SubjectPublicKeyInfo))
+    curve_private_key, curve_public_key = get_curve_key_pair()
 
     response = client_registration_request(public_key, curve_public_key, key) #private_key
 
@@ -122,7 +114,7 @@ def client_registration_request(publicKey, clientSessionPublicKey, privateKey):
     setup.requestReference = str(uuid.uuid4())
     setup.terminalId = (Constants.TERMINAL_ID)
     setup.gprsCoordinate = ""
-    setup.client_session_public_key = clientSessionPublicKey.decode('utf-8')
+    setup.client_session_public_key = clientSessionPublicKey
 
     headers = AuthUtils.generate_interswitch_auth(Constants.POST_REQUEST, REGISTRATION_ENDPOINT_URL, "", "", "", privateKey)
 
@@ -150,6 +142,39 @@ def complete_registration(terminal_key, auth_token, transaction_reference, otp, 
     json = json.dumps(complete_reg)
     return HttpUtil.post_http_request(REGISTRATION_COMPLETION_ENDPOINT_URL, headers, json)
 
+
+def get_curve_key_pair():
+    # from cryptography.hazmat.primitives.asymmetric import ec
+    # from cryptography.hazmat.primitives import serialization
+    # import base64
+
+    # Generate a SECP256R1 private key
+    private_key = ec.generate_private_key(ec.SECP256R1())
+
+    # Get the private key's raw components
+    private_numbers = private_key.private_numbers()
+
+    # Get the private key's d value (raw scalar value)
+    d = private_numbers.private_value
+
+    d_bytes = d.to_bytes((d.bit_length() + 7) // 8, byteorder='big')
+
+    # Get the corresponding public key
+    public_key = private_key.public_key()
+
+    # Get the public key's raw components
+    public_numbers = public_key.public_numbers()
+
+    # Get the public key's Q value (raw point value)
+    Q = public_numbers.public_key().public_bytes(encoding=serialization.Encoding.X962, format=serialization.PublicFormat.UncompressedPoint)
+
+    # Convert the Q value to a byte array
+    Q_bytes = Q
+
+    privateCurve =  base64.b64encode(d_bytes).decode("utf-8")
+    publicCurve = base64.b64encode(Q_bytes).decode("utf-8")
+
+    return privateCurve, publicCurve
 
 if __name__ == '__main__':
     main()
