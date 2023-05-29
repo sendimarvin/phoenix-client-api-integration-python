@@ -65,10 +65,9 @@ class CryptoUtils:
     @staticmethod
     def sign_with_private_key(data, private_key):
 
-        # private_key_bytes = private_key.encode('utf-8')
-        # key = load_pem_private_key(private_key_bytes, password=None)
-
-        signer = private_key.signer(padding.PKCS1v15(), hashes.SHA256())
-        signer.update(data.encode('utf-8'))
-        signature = signer.finalize()
+        signature = private_key.sign(
+            data.encode('utf-8'),
+            padding.PKCS1v15(),
+            hashes.SHA256()
+        )
         return base64.b64encode(signature).decode('utf-8')
