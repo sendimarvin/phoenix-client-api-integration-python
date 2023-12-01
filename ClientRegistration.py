@@ -3,13 +3,25 @@ import uuid
 from logging import getLogger
 from sys import stdin
 
-from Crypto.PublicKey import ECC
-from Crypto.Util import number
-from requests import post
+# from Crypto.PublicKey import ECC
+# from Crypto.Util import number
+# from requests import post
+
+# from Crypto.PublicKey import RSA 
+import base64
+# from Crypto.Cipher import PKCS1_OAEP
+# from Crypto.Random import get_random_bytes
 
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.asymmetric.ec import ECDH
+
 from cryptography.hazmat.backends import default_backend
+
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 from dto import (
     ClientRegistrationResponse, CompleteClientRegistration,
@@ -71,23 +83,89 @@ def main():
 
     registration_response = json.loads(response)
 
-    if registration_response['responseCode'] != PhoenixResponseCodes.APPROVED.value[2]:
-        logger.info(
+    if registration_response['responseCode'] != PhoenixResponseCodes.APPROVED.value[0]:
+        print(
             f"Client Registration failed: {registration_response['responseMessage']}"
         )
     else:
-        decrypted_session_key = CryptoUtils.decrypt_with_private(
-            registration_response['response']['server_session_public_key'], private_key
+        
+        pkey = serialization.load_pem_private_key(
+            private_key.encode('UTF-8'),
+            password=None,
+            backend=default_backend()
         )
-        terminal_key = curve_utils.do_ecdh(curve_private_key, decrypted_session_key)
-        logger.info("==============terminalKey==============")
-        logger.info(f"terminalKey: {terminal_key}")
+        
+        decrypted_session_key = pkey.decrypt(
+        base64.b64decode(registration_response['response']['serverSessionPublicKey'].encode('UTF-8')),
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None
+            )
+        )
+        
+       
+        #terminal_key = do_ecdh(, decrypted_session_key)
+        
+        
+        new_curve_private = curve_private_key.encode('UTF-8')
+        new_curve_public = decrypted_session_key
+        
+        
+        #start
+        print(f"length of private: " + str(len(decrypted_session_key)))
+        print(f"length of public: " + str(len(new_curve_public)))
+        
+        init = ec.derive_private_key(
+            int.from_bytes(new_curve_private, byteorder='big'),
+            ec.SECP256R1(),  # You may need to adjust the curve based on your requirements
+            default_backend()
+        )
+        
+        doPhase = ec.EllipticCurvePublicKey.from_encoded_point(
+            ec.SECP256R1(),  # You may need to adjust the curve based on your requirements
+            base64.b64decode(new_curve_public)
+            )
+        
+       
+        peer2_private_key = ec.generate_private_key(
+            ec.SECP256R1()
+        )
+        peer_private_key = ec.generate_private_key(
+            ec.SECP256R1()
+        )
+
+        
+        shared_key = init.exchange(ECDH(), doPhase)
+        
+        derived_key = HKDF(
+            algorithm=hashes.SHA256(),
+            length=32,  # You may adjust the length based on your requirements
+            salt=None,
+            info=b'ECDH Key Derivation',
+            backend=default_backend()
+        ).derive(shared_key)
+        
+        print(f"base64.b64encode(derived_key).decode('utf-8')")
+        
+        
+        #end
+        
+        
+        print("==============terminalKey==============")
+        
+        print(f"terminalKey: {terminal_key}")
+        
         auth_token = CryptoUtils.decrypt_with_private(
             registration_response['response']['authToken'], private_key
         )
+        
         transaction_reference = registration_response['response']['transactionReference']
-        logger.info("Enter received OTP: ")
+        
+        print("Enter received OTP: ")
+        
         otp = stdin.readline().strip()
+        
         final_response = complete_registration(
             terminal_key, auth_token, transaction_reference, otp, private_key
         )
@@ -99,20 +177,20 @@ def main():
                 response['response']['clientSecret'], private_key
             )
             if client_secret and len(client_secret) > 5:
-                logger.info(f"clientSecret: {client_secret}")
+                print(f"clientSecret: {client_secret}")
         else:
-            logger.info(f"finalResponse: {response['responseMessage']}")
+            print(f"finalResponse: {response['responseMessage']}")
 
 def client_registration_request(publicKey, clientSessionPublicKey, privateKey):
     setup = ClientRegistrationDetail()
-    setup.setSerialId(Constants.MY_SERIAL_ID)
-    setup.name = "API Client"
-    setup.nin = "123456"
-    setup.owner_phone_number = "0702544870"
-    setup.phone_number = "0702544870"
+    setup.setSerialId("0387329999004666")
+    setup.name = "pythonclitest"
+    setup.nin = "32564365236453"
+    setup.owner_phone_number = "0756074321"
+    setup.phone_number = "0756074321"
     setup.public_key = publicKey
     setup.requestReference = str(uuid.uuid4())
-    setup.terminalId = (Constants.TERMINAL_ID)
+    setup.terminalId = ("3ISO0511")
     setup.gprsCoordinate = ""
     setup.client_session_public_key = clientSessionPublicKey
 
@@ -124,6 +202,11 @@ def client_registration_request(publicKey, clientSessionPublicKey, privateKey):
     mjson = json.dumps(setup, cls=ClientRegistrationDetailEncoder) ##client_session_public_key
 
     return HttpUtil.post_http_request(REGISTRATION_ENDPOINT_URL, headers, mjson)
+
+
+def do_ecdh(private_key,public_key):
+    
+    return ""
 
 def complete_registration(terminal_key, auth_token, transaction_reference, otp, private_key):
     complete_reg = CompleteClientRegistration()

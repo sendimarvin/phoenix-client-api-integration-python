@@ -26,8 +26,8 @@ class AuthUtils:
         uuid_str = str(uuid.uuid4()).replace('-', '')
         nonce = uuid_str
 
-        client_id = 'IKIAE49C7B4ACC0077BD80058314D71A66A7C6FCC286'
-        client_secret = 'UtqTs3rO9XUzwKkeoCYKP0CCT9CDGmPePnonViczpWA='
+        client_id = 'IKIAF3229850AB4F01D6A710F4F7131A6B68B5BDFC43'
+        client_secret = 'qz7XclZk3V8yLLZsIXBqqa2zJLrxCDEGq8TCp1JsFx8='
 
         
 
