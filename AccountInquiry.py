@@ -3,10 +3,10 @@ import uuid
 
 import requests
 
-from ellipticcurveutils import EllipticCurveUtils
-from authutils import AuthUtils
-from cryptoutils import CryptoUtils
-from constants import Constants
+from utils import EllipticCurveUtils
+from utils import AuthUtils
+from utils import CryptoUtils
+from utils import Constants
 
 
 class KeyExchange:

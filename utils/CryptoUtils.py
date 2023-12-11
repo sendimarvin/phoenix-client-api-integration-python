@@ -1,5 +1,6 @@
 import base64
 import os
+from base64 import b64encode
 
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.Hash import SHA256
@@ -9,6 +10,11 @@ from Crypto.Util.Padding import pad, unpad
 from binascii import hexlify
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives import padding as sympadding
+from cryptography.hazmat.backends import default_backend
+
+
 
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 
@@ -51,6 +57,30 @@ class CryptoUtils:
             print('Exception trace:', e)
             raise SystemApiException(PhoenixResponseCodes.INTERNAL_ERROR.CODE, "Failure to decryptWithPrivate ")
     
+    
+    @staticmethod
+    def encrypt_aes(key, iv, plaintext):
+        try:
+            padder = sympadding.PKCS7(128).padder()
+            padded_data = padder.update(plaintext) + padder.finalize()
+
+            # Create an AES CBC cipher with the provided key and IV
+            cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
+
+            # Encrypt the padded data
+            encryptor = cipher.encryptor()
+            ciphertext = encryptor.update(padded_data) + encryptor.finalize()
+
+            # Return the base64-encoded ciphertext
+            return b64encode(ciphertext).decode('utf-8')
+        
+        except Exception as e:
+            print('Exception trace:', e)
+            raise SystemApiException(PhoenixResponseCodes.INTERNAL_ERROR.CODE, "Failure to decryptWithPrivate ")
+        
+        
+        
+        
     @staticmethod
     def encrypt_with_private(plaintext, private_key):
         try:

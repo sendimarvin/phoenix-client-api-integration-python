@@ -4,6 +4,8 @@ import hashlib
 import time
 import urllib.parse
 import uuid
+import secrets
+
 
 from typing import Dict
 from datetime import datetime
@@ -54,7 +56,7 @@ class AuthUtils:
         interswitch_auth['Signature'] = signature
 
         if terminal_key:
-            auth_token = CryptoUtils.encrypt(auth_token, terminal_key)
+            auth_token = CryptoUtils.encrypt_aes(terminal_key,secrets.token_bytes(16),auth_token)
         else:
             auth_token = ''
 

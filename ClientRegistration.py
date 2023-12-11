@@ -1,7 +1,14 @@
 import base64
 import uuid
+import secrets
+import hashlib
+
+from dto import CompleteClientRegistration
 from logging import getLogger
 from sys import stdin
+
+
+
 
 # from Crypto.PublicKey import ECC
 # from Crypto.Util import number
@@ -18,9 +25,13 @@ from cryptography.hazmat.primitives.asymmetric.ec import ECDH
 
 from cryptography.hazmat.backends import default_backend
 
-from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives import padding as sympadding
+from cryptography.hazmat.primitives.asymmetric import padding 
+
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 from dto import (
@@ -40,6 +51,7 @@ from utils import HttpUtil
 from utils import UtilMethods
 from cryptography.hazmat.primitives.asymmetric import rsa
 from base64 import b64encode
+from base64 import b64decode
 from cryptography.hazmat.primitives import serialization, hashes
 import json
 
@@ -75,7 +87,7 @@ def main():
     print(f"\n\nprivate key {private_key}\n\n")
     print(f"\n\npublic key {public_key}\n\n")
 
-    curve_private_key, curve_public_key = get_curve_key_pair()
+    curve_private_key, curve_public_key, public_c_key = get_curve_key_pair()
 
     response = client_registration_request(public_key, curve_public_key, key) #private_key
 
@@ -89,26 +101,33 @@ def main():
         )
     else:
         
-        pkey = serialization.load_pem_private_key(
-            private_key.encode('UTF-8'),
-            password=None,
-            backend=default_backend()
-        )
+        # pkey = serialization.load_pem_private_key(
+        #     private_key.encode('UTF-8'),
+        #     password=None,
+        #     backend=default_backend()
+        # )
         
-        decrypted_session_key = pkey.decrypt(
-        base64.b64decode(registration_response['response']['serverSessionPublicKey'].encode('UTF-8')),
-        padding.OAEP(
-            mgf=padding.MGF1(algorithm=hashes.SHA256()),
-            algorithm=hashes.SHA256(),
-            label=None
+        # decrypted_session_key = pkey.decrypt(
+        # base64.b64decode(registration_response['response']['serverSessionPublicKey'].encode('UTF-8')),
+        # padding.OAEP(
+        #     mgf=padding.MGF1(algorithm=hashes.SHA256()),
+        #     algorithm=hashes.SHA256(),
+        #     label=None
+        #     )
+        # )
+        
+        
+        decrypted_session_key = decrypt_with_private(
+            private_key,
+            base64.b64decode(registration_response['response']['serverSessionPublicKey'].encode('UTF-8'))
             )
-        )
         
        
         #terminal_key = do_ecdh(, decrypted_session_key)
         
         
         new_curve_private = curve_private_key.encode('UTF-8')
+        
         new_curve_public = decrypted_session_key
         
         
@@ -126,38 +145,26 @@ def main():
             ec.SECP256R1(),  # You may need to adjust the curve based on your requirements
             base64.b64decode(new_curve_public)
             )
+    
         
-       
-        peer2_private_key = ec.generate_private_key(
-            ec.SECP256R1()
-        )
-        peer_private_key = ec.generate_private_key(
-            ec.SECP256R1()
-        )
-
+        shared_key = public_c_key.exchange(ECDH(), doPhase)
         
-        shared_key = init.exchange(ECDH(), doPhase)
+        # terminal_key = HKDF(
+        #     algorithm=hashes.SHA256(),
+        #     length=32,  # You may adjust the length based on your requirements
+        #     salt=None,
+        #     info=b'ECDH Key Derivation',
+        #     backend=default_backend()
+        # ).derive(shared_key)
         
-        derived_key = HKDF(
-            algorithm=hashes.SHA256(),
-            length=32,  # You may adjust the length based on your requirements
-            salt=None,
-            info=b'ECDH Key Derivation',
-            backend=default_backend()
-        ).derive(shared_key)
-        
-        print(f"base64.b64encode(derived_key).decode('utf-8')")
-        
-        
-        #end
-        
+        #print(f"base64.b64encode(terminal_key).decode('utf-8')")
         
         print("==============terminalKey==============")
         
-        print(f"terminalKey: {terminal_key}")
+        # print(f"terminalKey: {terminal_key}")
         
-        auth_token = CryptoUtils.decrypt_with_private(
-            registration_response['response']['authToken'], private_key
+        auth_token = decrypt_with_private(
+             private_key,  base64.b64decode(registration_response['response']['authToken'].encode('UTF-8')),
         )
         
         transaction_reference = registration_response['response']['transactionReference']
@@ -167,13 +174,14 @@ def main():
         otp = stdin.readline().strip()
         
         final_response = complete_registration(
-            terminal_key, auth_token, transaction_reference, otp, private_key
+            shared_key, auth_token, transaction_reference, otp, key
         )
 
         response = json.loads(final_response)
         
-        if response['responseCode'] == PhoenixResponseCodes.APPROVED.value[2]:
-            client_secret = CryptoUtils.decrypt_with_private(
+        print(f"Complete Registration Result:  {response}")
+        if response['responseCode'] == PhoenixResponseCodes.APPROVED.value[0]:
+            client_secret = decrypt_with_private(
                 response['response']['clientSecret'], private_key
             )
             if client_secret and len(client_secret) > 5:
@@ -204,26 +212,42 @@ def client_registration_request(publicKey, clientSessionPublicKey, privateKey):
     return HttpUtil.post_http_request(REGISTRATION_ENDPOINT_URL, headers, mjson)
 
 
-def do_ecdh(private_key,public_key):
+# def do_ecdh(private_key,public_key):
     
-    return ""
+#     return ""
 
 def complete_registration(terminal_key, auth_token, transaction_reference, otp, private_key):
-    complete_reg = CompleteClientRegistration()
+    complete_reg = CompleteClientRegistration.CompleteClientRegistration()
     password_hash = UtilMethods.hash512(Constants.ACCOUNT_PWD)
+    
+    
+    temp_password = b64encode(hashlib.sha512(Constants.ACCOUNT_PWD.strip().encode('UTF-8')).digest())
+    
+    
+    print(f"hash original: {temp_password.decode('UTF-8')}")
+    print(f"hashed password: {b64decode(temp_password)}")
     complete_reg.set_terminal_id(Constants.TERMINAL_ID)
     complete_reg.set_serial_id(Constants.MY_SERIAL_ID)
-    complete_reg.set_otp(CryptoUtils.encrypt(otp, terminal_key))
+    
+    encrypted_otp = encrypt_aes(terminal_key, secrets.token_bytes(16), otp.encode('UTF-8'))
+    print(f"otp encrypted: {encrypted_otp}")
+    complete_reg.set_otp(encrypted_otp)
+
     complete_reg.set_request_reference(str(uuid.uuid4()))
-    complete_reg.set_password(CryptoUtils.encrypt(password_hash, terminal_key))
+    
+    encrypted_hash = encrypt_aes(terminal_key,secrets.token_bytes(16),b64decode(temp_password))
+    print(f"encrypted hash: {encrypted_hash}")
+    complete_reg.set_password(encrypted_hash)#temp_password.hexdigest()
     complete_reg.set_transaction_reference(transaction_reference)
     complete_reg.set_app_version(Constants.APP_VERSION)
-    complete_reg.set_gprs_coordinate("")
+    complete_reg.set_gps_coordinates("")
     
     headers = AuthUtils.generate_interswitch_auth(Constants.POST_REQUEST, REGISTRATION_COMPLETION_ENDPOINT_URL,
                                                  "", auth_token, terminal_key, private_key)
-    json = json.dumps(complete_reg)
-    return HttpUtil.post_http_request(REGISTRATION_COMPLETION_ENDPOINT_URL, headers, json)
+    json_string = complete_reg.toJSON()
+    
+    print(f"json string: {json_string}")
+    return HttpUtil.post_http_request(REGISTRATION_COMPLETION_ENDPOINT_URL, headers, json_string)
 
 
 def get_curve_key_pair():
@@ -256,8 +280,45 @@ def get_curve_key_pair():
 
     privateCurve =  base64.b64encode(d_bytes).decode("utf-8")
     publicCurve = base64.b64encode(Q_bytes).decode("utf-8")
+    privateCKey = private_key
 
-    return privateCurve, publicCurve
+    return privateCurve, publicCurve, private_key
+
+
+def decrypt_with_private(private_key,inputbits):
+    
+        pkey = serialization.load_pem_private_key(
+            private_key.encode('UTF-8'),
+            password=None,
+            backend=default_backend()
+        )
+        
+        output = pkey.decrypt(
+        inputbits,
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None
+            )
+        )
+   
+        return output
+
+
+def encrypt_aes(key, iv, plaintext):
+    # Pad the plaintext using PKCS7
+    padder = sympadding.PKCS7(128).padder()
+    padded_data = padder.update(plaintext) + padder.finalize()
+
+    # Create an AES CBC cipher with the provided key and IV
+    cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
+
+    # Encrypt the padded data
+    encryptor = cipher.encryptor()
+    ciphertext = encryptor.update(padded_data) + encryptor.finalize()
+
+    # Return the base64-encoded ciphertext
+    return b64encode(iv + ciphertext).decode('UTF-8')
 
 if __name__ == '__main__':
     main()
