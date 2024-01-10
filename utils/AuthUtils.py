@@ -28,9 +28,14 @@ class AuthUtils:
         uuid_str = str(uuid.uuid4()).replace('-', '')
         nonce = uuid_str
 
-        client_id = 'IKIAF3229850AB4F01D6A710F4F7131A6B68B5BDFC43'
-        client_secret = 'qz7XclZk3V8yLLZsIXBqqa2zJLrxCDEGq8TCp1JsFx8='
-
+        client_id = 'IKIAF859D1FC2B0BEB806B9E1969B68F4618F4ABB165'
+        client_secret = 'OlO8mXec9D+x4W8sLb7iqAi8lR+b6IL85qx+0FlmEuQ='
+        
+        # client_id = 'IKIAF3229850AB4F01D6A710F4F7131A6B68B5BDFC43'
+        # client_secret = 'qz7XclZk3V8yLLZsIXBqqa2zJLrxCDEGq8TCp1JsFx8='
+        
+        
+    
         
 
         authorization = f'InterswitchAuth {base64.b64encode(client_id.encode()).decode()}'

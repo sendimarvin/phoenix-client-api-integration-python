@@ -54,6 +54,7 @@ from base64 import b64encode
 from base64 import b64decode
 from cryptography.hazmat.primitives import serialization, hashes
 import json
+import binascii
 
 
 logger = getLogger("ClientRegistration")
@@ -191,14 +192,14 @@ def main():
 
 def client_registration_request(publicKey, clientSessionPublicKey, privateKey):
     setup = ClientRegistrationDetail()
-    setup.setSerialId("0387329999004666")
-    setup.name = "pythonclitest"
-    setup.nin = "32564365236453"
+    setup.setSerialId(Constants.MY_SERIAL_ID)
+    setup.name = "pythonclitest2"
+    setup.nin = "3657465642533765"
     setup.owner_phone_number = "0756074321"
     setup.phone_number = "0756074321"
     setup.public_key = publicKey
     setup.requestReference = str(uuid.uuid4())
-    setup.terminalId = ("3ISO0511")
+    setup.terminalId = Constants.TERMINAL_ID
     setup.gprsCoordinate = ""
     setup.client_session_public_key = clientSessionPublicKey
 
@@ -221,21 +222,21 @@ def complete_registration(terminal_key, auth_token, transaction_reference, otp, 
     password_hash = UtilMethods.hash512(Constants.ACCOUNT_PWD)
     
     
-    temp_password = b64encode(hashlib.sha512(Constants.ACCOUNT_PWD.strip().encode('UTF-8')).digest())
+    temp_password = b64encode(hashlib.sha512(Constants.ACCOUNT_PWD.strip().encode('UTF-8')).hexdigest().encode('UTF-8')).decode('UTF-8')
     
     
-    print(f"hash original: {temp_password.decode('UTF-8')}")
-    print(f"hashed password: {b64decode(temp_password)}")
+    print(f"hash original: {temp_password}")
+    print(f"hashed password: {b64decode(temp_password.encode('UTF-8'))}")
     complete_reg.set_terminal_id(Constants.TERMINAL_ID)
     complete_reg.set_serial_id(Constants.MY_SERIAL_ID)
     
     encrypted_otp = encrypt_aes(terminal_key, secrets.token_bytes(16), otp.encode('UTF-8'))
     print(f"otp encrypted: {encrypted_otp}")
-    complete_reg.set_otp(encrypted_otp)
+    complete_reg.set_otp("")
 
     complete_reg.set_request_reference(str(uuid.uuid4()))
     
-    encrypted_hash = encrypt_aes(terminal_key,secrets.token_bytes(16),b64decode(temp_password))
+    encrypted_hash = encrypt_password(Constants.ACCOUNT_PWD,terminal_key)
     print(f"encrypted hash: {encrypted_hash}")
     complete_reg.set_password(encrypted_hash)#temp_password.hexdigest()
     complete_reg.set_transaction_reference(transaction_reference)
@@ -307,7 +308,7 @@ def decrypt_with_private(private_key,inputbits):
 
 def encrypt_aes(key, iv, plaintext):
     # Pad the plaintext using PKCS7
-    padder = sympadding.PKCS7(128).padder()
+    padder = sympadding.PKCS7(256).padder()
     padded_data = padder.update(plaintext) + padder.finalize()
 
     # Create an AES CBC cipher with the provided key and IV
@@ -319,6 +320,34 @@ def encrypt_aes(key, iv, plaintext):
 
     # Return the base64-encoded ciphertext
     return b64encode(iv + ciphertext).decode('UTF-8')
+
+def encrypt_password(password, session_key):
+    session_key_bytes = session_key
+    
+    # Hash the password using SHA-512
+    password_hash = hashes.Hash(hashes.SHA512(), backend=default_backend())
+    password_hash.update(password.encode('utf-8'))
+    hashed_password_hex = password_hash.finalize().hex()
+    base64_encoded_hash = b64encode(bytes.fromhex(hashed_password_hex)).decode('utf-8')
+    
+    print("hashed_password_hex:", hashed_password_hex)
+    print("base64_encoded_hash:", base64_encoded_hash)
+    
+    iv = b'\x00' * 16
+    
+    # Pad the data to be encrypted using PKCS7
+    padder = sympadding.PKCS7(algorithms.AES.block_size).padder()
+    padded_data = padder.update(base64_encoded_hash.encode('utf-8')) + padder.finalize()
+    
+    # Encrypt the padded data using AES-256-CBC
+    cipher = Cipher(algorithms.AES(session_key_bytes), modes.CBC(iv), backend=default_backend())
+    encryptor = cipher.encryptor()
+    encrypted = encryptor.update(padded_data) + encryptor.finalize()
+    
+    combined_buffer = [iv, encrypted]
+    final_encr = b64encode(b"".join(combined_buffer)).decode('utf-8')
+    
+    return final_encr
 
 if __name__ == '__main__':
     main()
